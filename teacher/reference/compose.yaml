@@ -1,0 +1,26 @@
+services:
+  receiver:
+    image: ${SRT_LAB_IMAGE:-srt-lab:1.5.4}
+    command: ["timeout", "-k", "3s", "90s", "srt-file-transmit", "srt://:9000?mode=listener", "file:///output"]
+    volumes:
+      - ${SRT_COMPOSE_RUN:-./compose-run}/output:/output
+    healthcheck:
+      test: ["CMD-SHELL", "ss -H -lun 'sport = :9000' | grep -q ."]
+      interval: 1s
+      timeout: 1s
+      retries: 10
+    networks: [lab]
+
+  sender:
+    image: ${SRT_LAB_IMAGE:-srt-lab:1.5.4}
+    command: ["bash", "/measure.sh", "baseline", "receiver"]
+    volumes:
+      - ./input:/input:ro
+      - ./measure.sh:/measure.sh:ro
+      - ${SRT_COMPOSE_RUN:-./compose-run}/metrics:/metrics
+    networks: [lab]
+
+networks:
+  lab:
+    driver: bridge
+    internal: true
